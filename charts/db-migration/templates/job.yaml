@@ -1,0 +1,115 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "db-migration.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "db-migration.labels" . | nindent 4 }}
+  {{- if .Values.job.hookPhase }}
+  annotations:
+    helm.sh/hook: {{ .Values.job.hookPhase }}
+    helm.sh/hook-weight: {{ .Values.job.hookWeight | quote }}
+    helm.sh/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  {{- if .Values.job.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  {{- end }}
+  {{- if .Values.job.activeDeadlineSeconds }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "db-migration.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never   # Job-level backoffLimit controls retries; pod must not restart itself
+      serviceAccountName: {{ include "db-migration.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      # ---------------------------------------------------------------------------
+      # Security: run as a non-root user, drop all Linux capabilities.
+      # ---------------------------------------------------------------------------
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: flyway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          # Flyway "migrate" command. Extra flags from values are appended.
+          command:
+            - flyway
+            - migrate
+            {{- range .Values.flyway.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+
+          # ---------------------------------------------------------------------------
+          # Environment variables: non-secret config + credentials from Secret.
+          # Flyway reads FLYWAY_USER / FLYWAY_PASSWORD automatically.
+          # ---------------------------------------------------------------------------
+          env:
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "postgresql.existingSecret is required" .Values.postgresql.existingSecret }}
+                  key: username
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.existingSecret }}
+                  key: password
+            # FLYWAY_CONFIG_FILES tells Flyway where to find the mounted config.
+            - name: FLYWAY_CONFIG_FILES
+              value: /flyway/conf/flyway.conf
+
+          volumeMounts:
+            - name: flyway-config
+              mountPath: /flyway/conf
+              readOnly: true
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: flyway-config
+          configMap:
+            name: {{ include "db-migration.fullname" . }}-config
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

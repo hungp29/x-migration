@@ -1,0 +1,78 @@
+# Default values for db-migration.
+# Override per environment with -f values-<env>.yaml or --set.
+
+image:
+  repository: my-registry/db-migration
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Name of an existing ImagePullSecret for private registries.
+# Leave empty when using a public registry or cluster-level credentials.
+imagePullSecrets: []
+
+# -- PostgreSQL connection settings.
+# Credentials are read from the referenced Kubernetes Secret so they never
+# appear in values files or Helm release metadata.
+postgresql:
+  host: ""        # e.g. postgres.default.svc.cluster.local
+  port: 5432
+  database: ""    # e.g. myapp
+  # Name of an existing Secret containing the DB credentials.
+  # The Secret must have keys: username, password
+  existingSecret: ""
+
+# -- Flyway tuning knobs exposed at the chart level.
+# Most installations only need the connection settings above.
+flyway:
+  # Schemas Flyway manages (comma-separated). Defaults to the DB user's default schema.
+  schemas: ""
+  # Table Flyway uses to track applied migrations.
+  table: flyway_schema_history
+  # Validate applied migrations against on-disk checksums.
+  validateOnMigrate: true
+  # Allow migrations to run out of order (useful in multi-branch workflows).
+  outOfOrder: false
+  # Fail if applied migrations are missing from the filesystem.
+  ignoreMissingMigrations: false
+  # Extra Flyway CLI flags passed verbatim (e.g. "-placeholders.env=prod").
+  extraArgs: []
+
+# -- Kubernetes Job settings.
+job:
+  # Helm hook phase. Pre-install + pre-upgrade ensures migrations run before
+  # the application pods are updated. Set to "" to disable hook behaviour.
+  hookPhase: "pre-install,pre-upgrade"
+  # Hook weight controls order relative to other pre-install hooks.
+  hookWeight: "-5"
+  # Delete completed/failed jobs automatically.
+  hookDeletePolicy: "hook-succeeded"
+  # Number of retries before marking the Job as failed.
+  backoffLimit: 3
+  # Seconds after completion before the Job (and its pods) are garbage-collected.
+  # Requires the TTLAfterFinished feature gate (enabled by default since k8s 1.21).
+  ttlSecondsAfterFinished: 300
+  # Optional deadline for the entire Job (seconds). Unset = no deadline.
+  activeDeadlineSeconds: 600
+
+# -- Resource requests and limits for the migration container.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# -- Pod-level settings.
+podAnnotations: {}
+podLabels: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- ServiceAccount for the migration pod.
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
