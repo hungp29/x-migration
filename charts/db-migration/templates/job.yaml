@@ -5,12 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "db-migration.labels" . | nindent 4 }}
-  {{- if .Values.job.hookPhase }}
   annotations:
-    helm.sh/hook: {{ .Values.job.hookPhase }}
-    helm.sh/hook-weight: {{ .Values.job.hookWeight | quote }}
-    helm.sh/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
-  {{- end }}
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: {{ .Values.job.syncWave | quote }}
 spec:
   backoffLimit: {{ .Values.job.backoffLimit }}
   {{- if .Values.job.ttlSecondsAfterFinished }}

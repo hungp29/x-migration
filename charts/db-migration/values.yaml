@@ -37,13 +37,10 @@ flyway:
 
 # -- Kubernetes Job settings.
 job:
-  # Helm hook phase. Pre-install + pre-upgrade ensures migrations run before
-  # the application pods are updated. Set to "" to disable hook behaviour.
-  hookPhase: "pre-install,pre-upgrade"
-  # Hook weight controls order relative to other pre-install hooks.
-  hookWeight: "-5"
-  # Delete completed/failed jobs automatically.
-  hookDeletePolicy: "hook-succeeded"
+  # ArgoCD sync-wave for the Job. The ConfigMap and ServiceAccount are
+  # deployed at (syncWave - 1) so they exist before the Job hook runs.
+  # Lower numbers run first; negative values run before wave 0 resources.
+  syncWave: "-5"
   # Number of retries before marking the Job as failed.
   backoffLimit: 3
   # Seconds after completion before the Job (and its pods) are garbage-collected.

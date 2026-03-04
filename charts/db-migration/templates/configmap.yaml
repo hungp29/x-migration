@@ -5,12 +5,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "db-migration.labels" . | nindent 4 }}
-  {{- if .Values.job.hookPhase }}
   annotations:
-    helm.sh/hook: {{ .Values.job.hookPhase }}
-    helm.sh/hook-weight: {{ sub (.Values.job.hookWeight | int) 1 | quote }}
-    helm.sh/hook-delete-policy: before-hook-creation
-  {{- end }}
+    # Lower wave ensures the ConfigMap exists before the Job hook runs.
+    argocd.argoproj.io/sync-wave: {{ sub (.Values.job.syncWave | int) 1 | quote }}
 data:
   # flyway.conf is mounted into the container and auto-detected by Flyway.
   # Connection URL and credentials are injected via environment variables
