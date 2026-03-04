@@ -25,7 +25,7 @@ postgresql:
 # Most installations only need the connection settings above.
 flyway:
   # Schemas Flyway manages (comma-separated). Defaults to the DB user's default schema.
-  schemas: ""
+  schemas: "xdata"
   # Table Flyway uses to track applied migrations.
   table: flyway_schema_history
   # Validate applied migrations against on-disk checksums.
@@ -43,7 +43,7 @@ job:
   # Hook weight controls order relative to other pre-install hooks.
   hookWeight: "-5"
   # Delete completed/failed jobs automatically.
-  hookDeletePolicy: "hook-succeeded"
+  hookDeletePolicy: "before-hook-creation, hook-succeeded"
   # Number of retries before marking the Job as failed.
   backoffLimit: 3
   # Seconds after completion before the Job (and its pods) are garbage-collected.
