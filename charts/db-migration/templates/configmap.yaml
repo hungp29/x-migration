@@ -20,7 +20,8 @@ data:
     flyway.table={{ .Values.flyway.table }}
     flyway.validateOnMigrate={{ .Values.flyway.validateOnMigrate }}
     flyway.outOfOrder={{ .Values.flyway.outOfOrder }}
-    flyway.ignoreMissingMigrations={{ .Values.flyway.ignoreMissingMigrations }}
+    # Explicit location; Flyway 10 deprecates the default "sql" folder.
+    flyway.locations=filesystem:/flyway/migrations
     {{- if .Values.flyway.schemas }}
     flyway.schemas={{ .Values.flyway.schemas }}
     {{- end }}

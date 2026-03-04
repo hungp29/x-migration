@@ -32,8 +32,6 @@ flyway:
   validateOnMigrate: true
   # Allow migrations to run out of order (useful in multi-branch workflows).
   outOfOrder: false
-  # Fail if applied migrations are missing from the filesystem.
-  ignoreMissingMigrations: false
   # Extra Flyway CLI flags passed verbatim (e.g. "-placeholders.env=prod").
   extraArgs: []
 
