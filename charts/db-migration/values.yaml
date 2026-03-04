@@ -2,7 +2,7 @@
 # Override per environment with -f values-<env>.yaml or --set.
 
 image:
-  repository: my-registry/db-migration
+  repository: x-migration
   tag: latest
   pullPolicy: IfNotPresent
 
